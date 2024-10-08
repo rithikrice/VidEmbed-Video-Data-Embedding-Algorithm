@@ -1,49 +1,35 @@
 import cv2
 import sys
-import numpy as np
 
 def embed_data(video_path, data, output_path):
-    # Read the video
     cap = cv2.VideoCapture(video_path)
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4
+    out = cv2.VideoWriter(output_path, fourcc, cap.get(cv2.CAP_PROP_FPS),
+                          (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
+
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     data_length = len(data)
 
-    # Check for zero data length
-    if data_length == 0:
-        print("No data to embed.")
-        return
+    current_data_index = 0
 
-    # Prepare to write the new video
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter(output_path, fourcc, cap.get(cv2.CAP_PROP_FPS), 
-                          (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
-                           int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
-
-    index = 0
-
-    while cap.isOpened():
+    for _ in range(frame_count):
         ret, frame = cap.read()
-        if not ret:
+        if not ret or current_data_index >= data_length:
             break
 
-        # Embed data into specific pixels
-        for i in range(data_length):
-            # Calculate the pixel position
-            pixel_position = (i % int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                              i // int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) % int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        # Embed one bit per frame in the top-left 10x10 block
+        block_size = 10
+        bit = data[current_data_index]
 
-            # Check if pixel position is within the frame bounds
-            if (0 <= pixel_position[0] < frame.shape[1] and
-                0 <= pixel_position[1] < frame.shape[0]):
-                
-                # Embed bit
-                bit = data[i]
-                if bit == '1':
-                    if frame[pixel_position[1], pixel_position[0], 0] < 255:
-                        frame[pixel_position[1], pixel_position[0], 0] += 1  # Modify Red channel
+        # If bit is '0', set 10x10 block to 0, if '1', set it to 255
+        value = 0 if bit == '0' else 255
 
-        # Write the modified frame
+        for dy in range(block_size):
+            for dx in range(block_size):
+                frame[dy, dx, 0] = value
+
         out.write(frame)
+        current_data_index += 1
 
     cap.release()
     out.release()
@@ -51,7 +37,7 @@ def embed_data(video_path, data, output_path):
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        print("Usage: python3 embed_data_in_video.py <video_path> <data> <output_path>")
+        print("Usage: python embed_data_in_video.py <video_path> <data> <output_path>")
         sys.exit(1)
 
     video_path = sys.argv[1]
