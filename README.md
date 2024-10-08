@@ -20,7 +20,9 @@ This project implements algorithms for converting files into binary format and e
 - **Secure Communication**: Hide sensitive information within video files for secure transfer.
 - **Data Storage**: Store small amounts of data within videos without risk of it being easily extracted or stolen.
 
-**Easy to use the scripts, just clone and get started after having th required packages installed.**
+
+**Easy to use the scripts, just clone and get started after having the required packages installed.**
+
 
 ## Disclaimer: 
 **This project is for educational purpose. I do not endorse or support any illicit use of the algorithm. Please use responsibly and ethically.**
