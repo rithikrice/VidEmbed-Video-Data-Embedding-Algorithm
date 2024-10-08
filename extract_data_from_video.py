@@ -1,60 +1,37 @@
 import cv2
 import sys
+import numpy as np
 
-def extract_data(video_path, data_length):
-    # Read the video
+def extract_data_from_video(video_path, num_bits):
     cap = cv2.VideoCapture(video_path)
-    extracted_data = []
+    extracted_bits = ""
+    block_size = 10  # Same block size as in embedding
 
-    # Ensure that data_length is positive
-    if data_length <= 0:
-        print("Data length must be greater than zero.")
-        return ""
-
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    
-    # Ensure frame count is not zero
-    if frame_count == 0:
-        print("The video has no frames.")
-        return ""
-
-    while cap.isOpened():
+    for _ in range(num_bits):
         ret, frame = cap.read()
         if not ret:
             break
 
-        # Extract data from specific pixels
-        for i in range(data_length):
-            # Calculate pixel position
-            pixel_position = (i % int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-                              i // int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) % int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        # Extract the 10x10 block
+        block = frame[:block_size, :block_size, 0]
 
-            # Check if pixel position is within the frame bounds
-            if (0 <= pixel_position[0] < frame.shape[1] and
-                0 <= pixel_position[1] < frame.shape[0]):
-                
-                # Check bit
-                bit = frame[pixel_position[1], pixel_position[0], 0] % 2
-                extracted_data.append(str(bit))
+        # Calculate the average value of the block
+        avg_value = np.mean(block)
 
-                # Stop extracting if we reach the desired data_length
-                if len(extracted_data) == data_length:
-                    break
-
-        # Break the outer loop if the desired length is reached
-        if len(extracted_data) == data_length:
-            break
+        # Decide the bit based on the average value
+        bit = '1' if avg_value > 127 else '0'  # Threshold at 127 for 8-bit images (0-255 range)
+        extracted_bits += bit
 
     cap.release()
-    return ''.join(extracted_data)
+    return extracted_bits
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: python extract_data_from_video.py <video_path> <data_length>")
+        print("Usage: python extract_data_from_video.py <video_path> <num_bits>")
         sys.exit(1)
 
     video_path = sys.argv[1]
-    data_length = int(sys.argv[2])
+    num_bits = int(sys.argv[2])
 
-    extracted_data = extract_data(video_path, data_length)
-    print("Extracted data:", extracted_data)
+    data = extract_data_from_video(video_path, num_bits)
+    print("Extracted data:", data)
